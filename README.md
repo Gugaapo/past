@@ -1,4 +1,4 @@
-# 🕐 past — A Simple Bash TUI Directory Navigator
+# past — A Simple Bash TUI Directory Navigator
 
 `past` is a lightweight **Bash-based terminal UI** to quickly jump between your **recently visited** and **favorite** directories — without leaving your shell.
 
@@ -6,7 +6,7 @@ It’s built entirely in Bash (no Python, no C dependencies) and works seamlessl
 
 ---
 
-## ✨ Features
+## Features
 
 - **View last 10 visited directories**
 - **Manage favorites** (`past --fav`)
@@ -18,7 +18,7 @@ It’s built entirely in Bash (no Python, no C dependencies) and works seamlessl
 
 ---
 
-## ⚙️ Requirements
+## Requirements
 
 `past` requires only standard Bash and a few basic utilities:
 
