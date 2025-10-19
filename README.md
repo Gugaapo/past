@@ -94,11 +94,14 @@ rm -rf ~/.config/dir_history
 sed -i '/past() {/,+4d' ~/.bashrc
 ```
 ## Project Structure
-past-script/
-├── past/                 # Core Bash script
-├── setup.sh              # Installer
-└── README.md             # This file
-
+```
+└── past
+    ├── dir_history.sh # Keeping track of past directories
+    ├── past.sh        # Script
+    ├── README.md      # readme
+    ├── setup.sh       # Installer
+    └── uninstall.sh   # Uninstaller
+```
 
 ## Example Setup Workflow
 ```bash
