@@ -1,22 +1,27 @@
 #!/usr/bin/env bash
+
 # ==========================================================
 #  past - Simple TUI directory history & favorites manager
 # ==========================================================
 
-# --- Load dir_history.sh if available ---
-if [[ -f "$HOME/.oh-my-bash/custom/scripts/dir_history.sh" ]]; then
-    # shellcheck disable=SC1090
-    source "$HOME/.oh-my-bash/custom/scripts/dir_history.sh"
-fi
-
-# --- Configuration (fallbacks if not already set) ---
-DIR_HISTORY_CONFIG_DIR="${DIR_HISTORY_CONFIG_DIR:-$HOME/.config/dir_history}"
+# --- Configuration ---
+DIR_HISTORY_CONFIG_DIR="$HOME/.config/dir_history"
 mkdir -p "$DIR_HISTORY_CONFIG_DIR"
-DIR_HISTORY_FILE="${DIR_HISTORY_FILE:-$DIR_HISTORY_CONFIG_DIR/dir_history}"
-FAV_HISTORY_FILE="${FAV_HISTORY_FILE:-$DIR_HISTORY_CONFIG_DIR/dir_favorites}"
-DIR_HISTORY_SIZE="${DIR_HISTORY_SIZE:-10}"
-FAV_HISTORY_SIZE="${FAV_HISTORY_SIZE:-10}"
+DIR_HISTORY_FILE="$DIR_HISTORY_CONFIG_DIR/history.txt"
+FAV_HISTORY_FILE="$DIR_HISTORY_CONFIG_DIR/dir_favorites"
+DIR_HISTORY_SIZE=10
+FAV_HISTORY_SIZE=10
 
+# --- Color Definitions ---
+BOLD="\033[1m"
+DIM="\033[2m"
+RESET="\033[0m"
+BLUE="\033[34m"
+CYAN="\033[36m"
+YELLOW="\033[33m"
+GREEN="\033[32m"
+GRAY="\033[90m"
+INVERT="\033[7m"
 
 # --- Helpers ---
 truncate_middle() {
@@ -31,7 +36,8 @@ add_to_favorites() {
     grep -vFx "$dir" "$FAV_HISTORY_FILE" > "$FAV_HISTORY_FILE.tmp"
     { echo "$dir"; cat "$FAV_HISTORY_FILE.tmp"; } | head -n "$FAV_HISTORY_SIZE" > "$FAV_HISTORY_FILE"
     rm -f "$FAV_HISTORY_FILE.tmp"
-    echo "Added to favorites: $dir" >&2
+    echo -e "${GREEN}★ Added to favorites:${RESET} $dir" >&2
+    sleep 0.5
 }
 
 draw_menu() {
@@ -40,17 +46,17 @@ draw_menu() {
     local header=$3
 
     clear >&2
-    echo -e "\033[1m$header\033[0m" >&2
-    echo "Use ↑/↓ or number keys to select, Enter to cd, Shift+Enter to favorite, q to quit" >&2
+    echo -e "${BOLD}${BLUE}$header${RESET}" >&2
+    echo -e "${DIM}↑/↓ or number: navigate • Enter: open • Shift+Enter: favorite • Esc/q: quit${RESET}" >&2
     echo >&2
 
     for i in "${!list[@]}"; do
         local display
         display=$(truncate_middle "${list[i]}" "$(tput cols)")
         if [[ $i -eq $selected ]]; then
-            echo -e "\033[7m$((i+1)). ${display}\033[0m" >&2
+            echo -e "${INVERT}${YELLOW}$((i+1)). ${display}${RESET}" >&2
         else
-            echo " $((i+1)). ${display}" >&2
+            echo -e " ${CYAN}$((i+1)).${RESET} ${display}" >&2
         fi
     done
 }
@@ -61,17 +67,17 @@ highlight_and_confirm() {
     local header=$3
 
     clear >&2
-    echo -e "\033[1m$header\033[0m" >&2
-    echo "Use ↑/↓ or number keys to select, Enter to cd, Shift+Enter to favorite, q to quit" >&2
+    echo -e "${BOLD}${BLUE}$header${RESET}" >&2
+    echo -e "${DIM}Confirming selection...${RESET}" >&2
     echo >&2
 
     for i in "${!list[@]}"; do
         local display
         display=$(truncate_middle "${list[i]}" "$(tput cols)")
         if [[ $i -eq $index ]]; then
-            echo -e "\033[7m$((i+1)). ${display}\033[0m" >&2
+            echo -e "${INVERT}${YELLOW}$((i+1)). ${display}${RESET}" >&2
         else
-            echo " $((i+1)). ${display}" >&2
+            echo -e " ${CYAN}$((i+1)).${RESET} ${display}" >&2
         fi
     done
     sleep 0.2
@@ -85,14 +91,15 @@ mode_past() {
     local selected=0 key
     tput civis >&2
     while true; do
-        draw_menu dirs "$selected" "Recent Directories:"
+        draw_menu dirs "$selected" "📂 Recent Directories"
         IFS= read -rsn1 key
         case "$key" in
-            $'\x1b') # Escape sequence (arrows)
-                read -rsn2 key
-                case "$key" in
-                    '[A') ((selected--)); ((selected < 0)) && selected=$(( ${#dirs[@]} - 1 )) ;;
-                    '[B') ((selected++)); ((selected >= ${#dirs[@]} )) && selected=0 ;;
+            $'\x1b') # Escape or arrows
+                read -rsn2 -t 0.01 key2 || true
+                case "$key2" in
+                    '[A') ((selected--)); ((selected < 0)) && selected=$(( ${#dirs[@]} - 1 )) ;; # Up
+                    '[B') ((selected++)); ((selected >= ${#dirs[@]} )) && selected=0 ;;          # Down
+                    '')  tput cnorm >&2; clear >&2; return ;;                                    # ESC key quits
                 esac ;;
             '')  # Enter
                 tput cnorm >&2
@@ -103,14 +110,14 @@ mode_past() {
                 local num=$((10#$key))
                 (( num == 0 )) && num=10
                 (( num >= 1 && num <= ${#dirs[@]} )) || continue
-                highlight_and_confirm dirs "$((num-1))" "Recent Directories:"
+                highlight_and_confirm dirs "$((num-1))" "📂 Recent Directories"
                 tput cnorm >&2
                 clear >&2
                 echo "${dirs[num-1]}"
                 return ;;
             $'\x0a')  # Shift+Enter (depends on terminal)
                 add_to_favorites "${dirs[selected]}"
-                sleep 0.6 ;;
+                ;;
             q) tput cnorm >&2; clear >&2; return ;;
         esac
     done
@@ -123,14 +130,15 @@ mode_fav() {
     local selected=0 key
     tput civis >&2
     while true; do
-        draw_menu options "$selected" "Favorite Directories:"
+        draw_menu options "$selected" "⭐ Favorite Directories"
         IFS= read -rsn1 key
         case "$key" in
             $'\x1b')
-                read -rsn2 key
-                case "$key" in
+                read -rsn2 -t 0.01 key2 || true
+                case "$key2" in
                     '[A') ((selected--)); ((selected < 0)) && selected=$(( ${#options[@]} - 1 )) ;;
                     '[B') ((selected++)); ((selected >= ${#options[@]} )) && selected=0 ;;
+                    '')  tput cnorm >&2; clear >&2; return ;;  # ESC quits
                 esac ;;
             '')  # Enter
                 tput cnorm >&2
@@ -145,7 +153,7 @@ mode_fav() {
                 local num=$((10#$key))
                 (( num == 0 )) && num=10
                 (( num >= 1 && num <= ${#options[@]}-1 )) || continue
-                highlight_and_confirm favs "$((num-1))" "Favorite Directories:"
+                highlight_and_confirm favs "$((num-1))" "⭐ Favorite Directories"
                 tput cnorm >&2
                 clear >&2
                 echo "${favs[num-1]}"
