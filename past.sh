@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
-
 # ==========================================================
 #  past - Simple TUI directory history & favorites manager
 # ==========================================================
 
-# --- Configuration ---
-DIR_HISTORY_CONFIG_DIR="$HOME/.config/dir_history"
+# --- Load dir_history.sh if available ---
+if [[ -f "$HOME/.oh-my-bash/custom/scripts/dir_history.sh" ]]; then
+    # shellcheck disable=SC1090
+    source "$HOME/.oh-my-bash/custom/scripts/dir_history.sh"
+fi
+
+# --- Configuration (fallbacks if not already set) ---
+DIR_HISTORY_CONFIG_DIR="${DIR_HISTORY_CONFIG_DIR:-$HOME/.config/dir_history}"
 mkdir -p "$DIR_HISTORY_CONFIG_DIR"
-DIR_HISTORY_FILE="$DIR_HISTORY_CONFIG_DIR/dir_history"
-FAV_HISTORY_FILE="$DIR_HISTORY_CONFIG_DIR/dir_favorites"
-DIR_HISTORY_SIZE=10
-FAV_HISTORY_SIZE=10
+DIR_HISTORY_FILE="${DIR_HISTORY_FILE:-$DIR_HISTORY_CONFIG_DIR/dir_history}"
+FAV_HISTORY_FILE="${FAV_HISTORY_FILE:-$DIR_HISTORY_CONFIG_DIR/dir_favorites}"
+DIR_HISTORY_SIZE="${DIR_HISTORY_SIZE:-10}"
+FAV_HISTORY_SIZE="${FAV_HISTORY_SIZE:-10}"
+
 
 # --- Helpers ---
 truncate_middle() {
